@@ -1,0 +1,10 @@
+#!/bin/bash
+
+for f in $@; do
+    name=$(sed ':loop; N; $!b loop; ;s/\n\t/,/g' $f | \
+	grep ^Subject: | \
+	sed -e 's/Subject: \(\[[^]]*\] \)*\[PATCH[^/]*\( \([0-9]*\/\)[0-9]*\)*\] /\3/' | \
+	sed 's/Subject: //' | \
+	tr ' /' '_' | sed 's/[^a-zA-Z0-9_]//g')
+    guilt import -P $name $f
+done

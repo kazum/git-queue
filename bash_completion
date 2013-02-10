@@ -1,0 +1,79 @@
+_git_qpop()
+{
+	case "$cur" in
+	-*)
+		__gitcomp "--all -a -f -n"
+		return
+	esac
+
+	__gitcomp "`guilt applied`"
+}
+
+_git_qpush()
+{
+	case "$cur" in
+	-*)
+		__gitcomp "--all -a -f -n"
+		return
+	esac
+
+	__gitcomp "`guilt unapplied`"
+}
+
+_git_qcommit()
+{
+	case "$cur" in
+	-*)
+		__gitcomp "--all -a -n"
+		return
+	esac
+
+	COMPREPLY=()
+}
+
+_git_qrevert()
+{
+	__git_complete_revlist
+}
+
+_git_qimport()
+{
+	COMPREPLY=()
+}
+
+_git_qpick()
+{
+	__git_complete_revlist
+}
+
+_git_qseries()
+{
+	case "$cur" in
+	-*)
+		__gitcomp "-e -g -v"
+		return
+	esac
+
+	COMPREPLY=()
+}
+
+_git_qapplied()
+{
+	case "$cur" in
+	-*)
+		__gitcomp "-c"
+		return
+	esac
+
+	COMPREPLY=()
+}
+
+_git_qunapplied()
+{
+	COMPREPLY=()
+}
+
+_git_qinit()
+{
+	COMPREPLY=()
+}

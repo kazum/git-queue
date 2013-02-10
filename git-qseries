@@ -1,0 +1,35 @@
+#!/bin/bash
+
+set -e
+
+guilt series -v $@
+
+# cleanup unused patches
+
+. "$(git --exec-path)/git-sh-setup"
+GUILT_DIR="$GIT_DIR/patches"
+
+silent()
+{
+	"$@" >/dev/null 2>/dev/null
+}
+
+get_branch()
+{
+	silent git symbolic-ref HEAD || \
+		die "Working on a detached HEAD is unsupported."
+
+	git symbolic-ref HEAD | sed -e 's,^refs/heads/,,'
+}
+
+raw_git_branch=`get_branch`
+branch=`echo "$raw_git_branch" | sed -e 's,^'$GUILT_PREFIX',,'`
+
+for f in $GUILT_DIR/$branch/*; do
+    if [ $f = $GUILT_DIR/$branch/series -o $f = $GUILT_DIR/$branch/status ]; then
+	continue
+    fi
+    if ! grep -q "^`basename $f`$" $GUILT_DIR/$branch/series; then
+	rm $f
+    fi
+done

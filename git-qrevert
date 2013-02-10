@@ -1,0 +1,24 @@
+#!/bin/bash
+
+set -e
+
+must_commit_first()
+{
+    git update-index --refresh --unmerged -q > /dev/null
+    [ `git diff-files | wc -l` -eq 0 ] || return $?
+    [ `git diff-index HEAD | wc -l` -eq 0 ]
+    return $?
+}
+
+if ! must_commit_first; then
+    echo "Uncommited changes detected."
+    return 1
+fi
+
+DIR=$(mktemp -d)
+
+git format-patch -o $DIR --quiet $@
+git qimport $DIR/*
+git reset $@ --hard
+
+rm -r $DIR
