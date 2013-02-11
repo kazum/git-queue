@@ -1,3 +1,8 @@
 #!/bin/bash
 
+set -e
+
 guilt commit $@
+
+# run gseries to cleanup merged patches
+rest=$(git qseries)
