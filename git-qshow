@@ -1,0 +1,59 @@
+#!/bin/bash
+
+set -e
+
+name=$1
+if [ "$name" = "" ]; then
+    name=$(guilt next)
+fi
+
+. "$(git --exec-path)/git-sh-setup"
+GUILT_DIR="$GIT_DIR/patches"
+
+silent()
+{
+	"$@" >/dev/null 2>/dev/null
+}
+
+get_branch()
+{
+	silent git symbolic-ref HEAD || \
+		die "Working on a detached HEAD is unsupported."
+
+	git symbolic-ref HEAD | sed -e 's,^refs/heads/,,'
+}
+
+_filter()
+{
+    sed ':loop; N; $!b loop; ;s/\n\t/,/g' | \
+	perl -pe '
+if ($commitlog) {
+} elsif ($body) {
+    if (/^--/) {
+        $commitlog = 1
+    } elsif ($_) {
+        $_ = "    $_";
+    }
+} else {
+    if (/^\n$/) {
+        $body = 1;
+    } elsif (/^Subject: (\[.+?\] ?)*(.+)/) {
+        $_ = "\n    $2\n";
+    } elsif (/^Date:/) {
+    } elsif (/^From:(.+)/) {
+        $_ = "Author:$1\n";
+    } else {
+        $_ = "";
+    }
+}
+'
+}
+
+raw_git_branch=`get_branch`
+branch=`echo "$raw_git_branch" | sed -e 's,^'$GUILT_PREFIX',,'`
+
+if [ "$(which colordiff)" = "" ]; then
+    cat $GUILT_DIR/$branch/$name | _filter | ${PAGER:-cat}
+else
+    cat $GUILT_DIR/$branch/$name | _filter | colordiff | lv -c
+fi

@@ -77,3 +77,8 @@ _git_qinit()
 {
 	COMPREPLY=()
 }
+
+_git_qshow()
+{
+	__gitcomp "`guilt series`"
+}
