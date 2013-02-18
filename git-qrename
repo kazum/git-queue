@@ -1,0 +1,41 @@
+#!/bin/bash
+
+src=$1
+dst=$2
+
+if [ "$dst" = "" ]; then
+    echo "git qrename <src> <dst>"
+    exit 1
+fi
+
+. "$(git --exec-path)/git-sh-setup"
+GUILT_DIR="$GIT_DIR/patches"
+
+silent()
+{
+	"$@" >/dev/null 2>/dev/null
+}
+
+get_branch()
+{
+	silent git symbolic-ref HEAD || \
+		die "Working on a detached HEAD is unsupported."
+
+	git symbolic-ref HEAD | sed -e 's,^refs/heads/,,'
+}
+
+raw_git_branch=`get_branch`
+branch=`echo "$raw_git_branch" | sed -e 's,^'$GUILT_PREFIX',,'`
+
+if [ ! -e "$GUILT_DIR/$branch/$src" ]; then
+    echo "no such patch: $src"
+    exit 1
+fi
+
+if [ -e "$GUILT_DIR/$branch/$dst" ]; then
+    echo "already exists: $dst"
+    exit 1
+fi
+
+mv "$GUILT_DIR/$branch/$src" "$GUILT_DIR/$branch/$dst"
+sed -i s/$src/$dst/ "$GUILT_DIR/$branch/series"

@@ -82,3 +82,8 @@ _git_qshow()
 {
 	__gitcomp "`guilt series`"
 }
+
+_git_qrename()
+{
+	__gitcomp "`guilt series`"
+}
