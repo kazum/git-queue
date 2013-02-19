@@ -1,3 +1,130 @@
 #!/bin/bash
+#
+# Copyright (C) 2013 MORITA Kazutaka <morita.kazutaka@gmail.com>
+#
+# This code is based on guilt-push from Guilt (Git Quilt):
+#   Copyright (c) Josef "Jeff" Sipek, 2006-2011
+#
 
-guilt push $@
+. git-qsh-setup
+
+USAGE="[ -f ] [-a | --all | -n <num> | <patchname>]"
+
+abort_flag="abort"
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+	-f)
+	    abort_flag=""
+	    ;;
+	-a|--all)
+	    all=t
+	    ;;
+	-n)
+	    num=t
+	    ;;
+	*)
+	    break
+	    ;;
+    esac
+    shift
+done
+
+
+if [ $# -gt 1 ]; then
+    usage
+fi
+
+# "git qpush" or "git qpush foo"
+if [ -z "$all" ] && [ $# -gt 1 ]; then
+    usage
+fi
+
+# "git qpush -n foo"
+if [ ! -z "$num" ]; then
+    if [ $# -gt 1 ] || [ $# -eq 0 ]; then
+	usage
+    fi
+fi
+
+# "git qpush -a"
+if [ ! -z "$all" ] && [ $# -gt 0 ]; then
+    usage
+fi
+
+patch="$1"
+[ ! -z "$all" ] && patch="-a"
+
+if [ "$patch" = "-a" ]; then
+    # we are supposed to push all patches, get the last one out of
+    # series
+
+    eidx=`wc -l < "$series"`
+    if [ $eidx -eq 0 ]; then
+	die "There are no patches to push."
+    fi
+elif [ ! -z "$num" ]; then
+    # we are supposed to pop a set number of patches
+
+    [ "$patch" -lt 0 ] && die "Invalid number of patches to push."
+
+    eidx=`wc -l < "$series"`
+
+    # calculate end index from current
+    tidx=`wc -l < "$applied"`
+    tidx=`expr $tidx + $patch`
+
+    # clamp to minimum
+    [ $tidx -lt $eidx ] && eidx=$tidx
+
+elif [ -z "$patch" ]; then
+    # we are supposed to push only the next patch onto the stack
+
+    eidx=`wc -l < "$applied"`
+    eidx=`expr $eidx + 1`
+else
+    # we're supposed to push only up to a patch, make sure the patch is
+    # in the series
+
+    eidx=`grep -ne "^$patch\$" "$series" | cut -d: -f1`
+    if [ -z "$eidx" ]; then
+	die "Patch $patch is not in the series."
+    fi
+fi
+
+# make sure that there are no unapplied changes
+if ! must_commit_first; then
+    die "Uncommited changes detected. Refresh first."
+fi
+
+# now, find the starting patch
+sidx=`wc -l < "$applied"`
+sidx=`expr $sidx + 1`
+
+# do we actually have to push anything?
+if [ "$sidx" -gt "$eidx" ]; then
+    if [ "$sidx" -le "`wc -l < "$series"`" ]; then
+	echo "Patch is already applied."
+    else
+	echo "File series fully applied, ends at patch `tail -n 1 \"$series\"`"
+    fi
+    exit 0
+fi
+
+for p in $(sed -n -e "${sidx},${eidx}p" "$series"); do
+    echo "Applying patch..$p"
+    if [ ! -f "$GITQ_DIR/$branch/$p" ]; then
+	die "Patch $p does not exist. Aborting."
+    fi
+
+    push_patch "$p" $abort_flag
+
+    # bail if necessary
+    if [ $? -eq 0 ]; then
+	echo "Patch applied."
+    elif [ -z "$abort_flag" ]; then
+	die "Patch applied with rejects. Fix it up, and refresh."
+    else
+	die "To force apply this patch, use 'git qpush -f'"
+    fi
+done

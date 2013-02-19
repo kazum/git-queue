@@ -1,3 +1,26 @@
 #!/bin/bash
+#
+# Copyright (C) 2013 MORITA Kazutaka <morita.kazutaka@gmail.com>
+#
+# This code is based on guilt-init from Guilt (Git Quilt):
+#   Copyright (c) Josef "Jeff" Sipek, 2006-2011
+#
 
-guilt init $@
+DO_NOT_CHECK_BRANCH_EXISTENCE=1
+
+. git-qsh-setup
+
+USAGE=""
+
+if [ $# -ne 0 ]; then
+    usage
+fi
+
+if [ -d "$GITQ_DIR/$branch" ]; then
+    die "Branch $branch appears to be already initialized (GIT_DIR=$GIT_DIR)"
+fi
+
+[ ! -d "$GITQ_DIR" ] && mkdir "$GITQ_DIR"
+mkdir -p "$GITQ_DIR/$branch"
+touch "$GITQ_DIR/$branch/series"
+touch "$GITQ_DIR/$branch/status"

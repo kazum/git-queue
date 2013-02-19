@@ -1,0 +1,30 @@
+#!/bin/bash
+#
+# Copyright (C) 2013 MORITA Kazutaka <morita.kazutaka@gmail.com>
+#
+# This code is based on guilt-next from Guilt (Git Quilt):
+#   Copyright (c) Josef "Jeff" Sipek, 2006-2011
+#
+
+. git-qsh-setup
+
+USAGE="[-p|--path]"
+
+while [ $# -ne 0 ]; do
+    case "$1" in
+	-p|--path)
+	    path="$GITQ_DIR/$branch/" ;;
+	*)
+	    usage ;;
+    esac
+    shift
+done
+
+n=`wc -l < "$applied"`
+n=$(($n + 1))
+
+p=`awk "{ if (NR == $n) print \\$0}" "$series"`
+
+if [ -n "$p" ]; then
+    echo $path$p
+fi

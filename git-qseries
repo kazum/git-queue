@@ -1,35 +1,56 @@
 #!/bin/bash
+#
+# Copyright (C) 2013 MORITA Kazutaka <morita.kazutaka@gmail.com>
+#
+# This code is based on guilt-series from Guilt (Git Quilt):
+#   Copyright (c) Josef "Jeff" Sipek, 2006-2011
+#
 
-set -e
+. git-qsh-setup
 
-guilt series -v $@
+USAGE="[-v | -e]"
+
+while case "$#" in 0) break ;; esac
+do
+    case "$1" in
+	-v)
+	    verbose=t ;;
+	-e)
+	    edit=t ;;
+	*)
+	    usage ;;
+    esac
+    shift
+done
+
+if [ ! -z "$edit" ]; then 
+    git_editor "$series"
+elif [ -z "$verbose" ]; then
+    cat "$series"
+else
+    prefix="+"
+    top=`get_top`
+
+    for patch in `cat "$series"`; do 
+	if [ -z "$top" ]; then
+	    echo "  $patch"
+	else
+	    if [ "$patch" = "$top" ]; then
+		echo "= $patch"
+		prefix=" "
+	    else
+		echo "$prefix $patch"
+	    fi
+	fi
+    done
+fi
 
 # cleanup unused patches
-
-. "$(git --exec-path)/git-sh-setup"
-GUILT_DIR="$GIT_DIR/patches"
-
-silent()
-{
-	"$@" >/dev/null 2>/dev/null
-}
-
-get_branch()
-{
-	silent git symbolic-ref HEAD || \
-		die "Working on a detached HEAD is unsupported."
-
-	git symbolic-ref HEAD | sed -e 's,^refs/heads/,,'
-}
-
-raw_git_branch=`get_branch`
-branch=`echo "$raw_git_branch" | sed -e 's,^'$GUILT_PREFIX',,'`
-
-for f in $GUILT_DIR/$branch/*; do
-    if [ $f = $GUILT_DIR/$branch/series -o $f = $GUILT_DIR/$branch/status ]; then
+for f in $GITQ_DIR/$branch/*; do
+    if [ $f = "$series" -o $f = "$applied" ]; then
 	continue
     fi
-    if ! grep -q "^`basename $f`$" $GUILT_DIR/$branch/series; then
+    if ! grep -q "^`basename $f`$" "$series"; then
 	rm $f
     fi
 done

@@ -1,24 +1,31 @@
 #!/bin/bash
+#
+# Copyright (C) 2013 MORITA Kazutaka <morita.kazutaka@gmail.com>
+#
 
-set -e
+. git-qsh-setup
 
-must_commit_first()
-{
-    git update-index --refresh --unmerged -q > /dev/null
-    [ `git diff-files | wc -l` -eq 0 ] || return $?
-    [ `git diff-index HEAD | wc -l` -eq 0 ]
-    return $?
-}
+USAGE="<commit>"
+
+if [ $# -ne 1 ] || [ -z "$1" ]; then
+    usage
+fi
+
+commit="$1"
 
 if ! must_commit_first; then
-    echo "Uncommited changes detected."
-    return 1
+    die "Uncommited changes detected."
 fi
 
 DIR=$(mktemp -d)
 
-git format-patch -o $DIR --quiet $@
-git qimport $DIR/*
-git reset $@ --hard
+git format-patch -o $DIR --quiet $commit
+
+TMP=$(mktemp)
+cp "$series" $TMP
+truncate -s 0 "$series"
+git qimport $DIR/* && git reset $commit --hard
+cat $TMP >> "$series"
+rm $TMP
 
 rm -r $DIR

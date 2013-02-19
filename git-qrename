@@ -1,41 +1,26 @@
 #!/bin/bash
+#
+# Copyright (C) 2013 MORITA Kazutaka <morita.kazutaka@gmail.com>
+#
+
+. git-qsh-setup
+
+USAGE="<src> <dst>"
 
 src=$1
 dst=$2
 
 if [ "$dst" = "" ]; then
-    echo "git qrename <src> <dst>"
-    exit 1
+    usage
 fi
 
-. "$(git --exec-path)/git-sh-setup"
-GUILT_DIR="$GIT_DIR/patches"
-
-silent()
-{
-	"$@" >/dev/null 2>/dev/null
-}
-
-get_branch()
-{
-	silent git symbolic-ref HEAD || \
-		die "Working on a detached HEAD is unsupported."
-
-	git symbolic-ref HEAD | sed -e 's,^refs/heads/,,'
-}
-
-raw_git_branch=`get_branch`
-branch=`echo "$raw_git_branch" | sed -e 's,^'$GUILT_PREFIX',,'`
-
-if [ ! -e "$GUILT_DIR/$branch/$src" ]; then
-    echo "no such patch: $src"
-    exit 1
+if [ ! -e "$GITQ_DIR/$branch/$src" ]; then
+    die "no such patch: $src"
 fi
 
-if [ -e "$GUILT_DIR/$branch/$dst" ]; then
-    echo "already exists: $dst"
-    exit 1
+if [ -e "$GITQ_DIR/$branch/$dst" ]; then
+    die "already exists: $dst"
 fi
 
-mv "$GUILT_DIR/$branch/$src" "$GUILT_DIR/$branch/$dst"
-sed -i s/$src/$dst/ "$GUILT_DIR/$branch/series"
+mv "$GITQ_DIR/$branch/$src" "$GITQ_DIR/$branch/$dst"
+sed -i s/$src/$dst/ "$series"

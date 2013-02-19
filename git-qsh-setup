@@ -1,0 +1,215 @@
+#!/bin/bash
+#
+# Copyright (C) 2013 MORITA Kazutaka <morita.kazutaka@gmail.com>
+#
+# This code is based on guilt from Guilt (Git Quilt):
+#   Copyright (c) Josef "Jeff" Sipek, 2006-2011
+#
+
+. "$(git --exec-path)/git-sh-setup"
+
+case $1 in
+    -h|--help)
+	usage
+	;;
+esac
+
+########
+
+#
+# Library goodies
+#
+
+get_branch()
+{
+    git symbolic-ref HEAD >/dev/null 2>/dev/null || \
+	die "Working on a detached HEAD is unsupported."
+
+    git symbolic-ref HEAD | sed -e 's,^refs/heads/,,'
+}
+
+verify_branch()
+{
+    [ ! -d "$GIT_DIR/patches" ] &&
+    die "Patches directory doesn't exist, try git qinit"
+    [ ! -d "$GIT_DIR/patches/$branch" ] &&
+    die "Branch $branch is not initialized, try git qinit"
+    [ ! -f "$GIT_DIR/patches/$branch/series" ] &&
+    die "Branch $branch does not have a series file"
+    [ ! -f "$GIT_DIR/patches/$branch/status" ] &&
+    die "Branch $branch does not have a status file"
+}
+
+get_top()
+{
+    tail -n 1 "$GITQ_DIR/$branch/status"
+}
+
+get_prev()
+{
+    if [ `wc -l < "$GITQ_DIR/$branch/status"` -gt 1 ]; then
+	tail -n 2 "$GITQ_DIR/$branch/status" | head -n 1
+    fi
+}
+
+# usage: remove_patch_refs
+# reads patch names from stdin
+remove_patch_refs()
+{
+    while read pname; do
+	remove_ref "refs/patches/$branch/$pname"
+    done
+}
+
+# usage: pop_many_patches <commitish> <number of patches>
+pop_many_patches()
+{
+    cd_to_toplevel
+
+    # remove the patches refs
+    tail -n $2 < "$applied" | remove_patch_refs
+
+    git reset --hard "$1" > /dev/null
+
+    n=`wc -l < "$applied"`
+    n=`expr $n - $2`
+    head -n "$n" < "$applied" > "$applied.tmp"
+    mv "$applied.tmp" "$applied"
+}
+
+# usage: pop_all_patches
+pop_all_patches()
+{
+    pop_many_patches \
+	`git rev-parse refs/patches/$branch/$(head -n 1 "$applied")^` \
+	`wc -l < "$applied"`
+}
+
+# usage: remove_ref <refname>
+remove_ref()
+{
+    # does the ref exist?
+    r=`git show-ref --verify -s "$1" 2> /dev/null`
+    [ $? -ne 0 ] && exit 0
+
+    # remove it
+    git update-ref -d "$1" "$r"
+}
+
+# usage: push_patch patchname [bail_action]
+push_patch()
+{
+    __push_patch_bail=0
+
+    (
+	TMP_LOG=`get_tmp_file log`
+
+	p="$GITQ_DIR/$branch/$1"
+	pname="$1"
+	bail_action="$2"
+	reject="--reject"
+
+	cd_to_toplevel
+
+	if [ "$bail_action" = abort ]; then
+	    reject=""
+	fi
+	git am -s $reject "$p" > /dev/null 2> "$TMP_LOG"
+	__push_patch_bail=$?
+
+	if [ $__push_patch_bail -ne 0 ]; then
+	    cat "$TMP_LOG" >&2
+	    if [ "$bail_action" = "abort" ]; then
+		rm -f "$TMP_LOG" "$TMP_MSG"
+		git am --abort
+		return $__push_patch_bail
+	    fi
+	fi
+
+	git update-ref "refs/patches/$branch/$pname" HEAD
+
+	cp "$applied" "$applied.tmp"
+	echo "$pname" >> "$applied.tmp"
+	mv "$applied.tmp" "$applied"
+
+	rm -f "$TMP_LOG"
+    )
+
+    # sub-shell funky-ness
+    __push_patch_bail=$?
+
+    return $__push_patch_bail
+}
+
+# usage: must_commit_first
+must_commit_first()
+{
+    git update-index --refresh --unmerged -q > /dev/null
+    [ `git diff-files | wc -l` -eq 0 ] || return $?
+    [ `git diff-index HEAD | wc -l` -eq 0 ]
+    return $?
+}
+
+# usage: munge_hash_range <hash range>
+#
+# this means:
+#	<hash>			- one commit
+#	<hash>..		- hash until head (excludes hash, includes head)
+#	..<hash>		- until hash (includes hash)
+#	<hash1>..<hash2>	- from hash to hash (inclusive)
+#
+# The output of this function is suitable to be passed to "git rev-list"
+munge_hash_range()
+{
+    case "$1" in
+	*..*..*|*\ *)
+	    # double .. or space is illegal
+	    return 1;;
+	..*)
+	    # e.g., "..v0.10"
+	    echo ${1#..};;
+	*..)
+	    # e.g., "v0.19.."
+	    echo ${1%..}..HEAD;;
+	*..*)
+	    # e.g., "v0.19-rc1..v0.19"
+	    echo ${1%%..*}..${1#*..};;
+	?*)
+	    # e.g., "v0.19"
+	    echo $1^..$1;;
+	*)  # empty
+	    return 1;;
+    esac
+    return 0
+}
+
+# usage: get_tmp_file <prefix> [<opts>]
+#
+# Get a unique filename and create the file in a non-racy way
+get_tmp_file()
+{
+    while true; do
+	mktemp $2 "/tmp/gitq.$1.XXXXXXXXXXXXXXX" && break
+    done
+}
+
+#
+# The following gets run every time this file is source'd
+#
+
+GITQ_DIR="$GIT_DIR/patches"
+
+# very useful files
+branch=`get_branch`
+series="$GITQ_DIR/$branch/series"
+applied="$GITQ_DIR/$branch/status"
+
+# most of the time we want to verify that the repo's branch has been
+# initialized, but every once in a blue moon (e.g., we want to run git qinit),
+# we must avoid the checks
+if [ -z "$DO_NOT_CHECK_BRANCH_EXISTENCE" ]; then
+    verify_branch
+fi
+
+# determine a pager to use for anything interactive (fall back to more)
+pager=${PAGER:-more}

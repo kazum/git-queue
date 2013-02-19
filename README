@@ -1,1 +1,22 @@
-This repository includes some tiny wrappers for guilt (quilt for git).
+This repository includes a series of bash scripts which help to manage
+patch emails based on a Mercurial queues-like functionality.
+
+The distinguishing features from other quilt-like tools are:
+
+ - Optimized for managing patch emails; a patch name is automaticaly
+   generated from an email subject, and git-am is used instead of
+   git-apply to push a patch.
+
+ - New and refresh are not provided for simplicity; we can do the same
+   things more easily with git branch and rebase.
+
+Example:
+
+ $ git qinit          # initialize
+ $ git qimport *.eml  # import patch emails
+ $ git qseries -e     # arrange the patches in order
+ $ git qpush          # apply the patch
+ $ git qcommit -a     # commit the patch
+
+--
+Copyright (C) 2013, MORITA Kazutaka <morita.kazutaka@gmail.com>

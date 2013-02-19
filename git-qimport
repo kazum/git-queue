@@ -1,4 +1,46 @@
 #!/bin/bash
+#
+# Copyright (C) 2013 MORITA Kazutaka <morita.kazutaka@gmail.com>
+#
+# This code is based on guilt-import from Guilt (Git Quilt):
+#   Copyright (c) Josef "Jeff" Sipek, 2007-2011
+#
+
+. git-qsh-setup
+
+USAGE="<file>..."
+
+if [ $# -lt 1 ]; then
+    usage
+fi
+
+_import() {
+
+    newname="$1"
+    oldname="$2"
+
+    # make sure that there are no unapplied changes
+    if ! must_commit_first; then
+	die "Uncommited changes detected. Refresh first."
+    fi
+
+    if [ ! -e "$oldname" ]; then
+	die "Specified file does not exist."
+    fi
+
+    if [ -e "$GITQ_DIR/$branch/$newname" ]; then
+	die "Already tracking a patch under that name."
+    fi
+
+    cp "$oldname" "$GITQ_DIR/$branch/$newname"
+
+    # insert the patch into the series file
+    cp "$series" "$series.tmp"
+    echo "$newname" >> "$series.tmp"
+    mv "$series.tmp" "$series"
+
+    echo "import $newname"
+}
 
 for f in $@; do
     name=$(sed ':loop; N; $!b loop; ;s/\n\t/,/g' $f | \
@@ -6,5 +48,5 @@ for f in $@; do
 	sed -e 's/Subject: \(\[[^]]*\] \)*\[PATCH[^/]*\( \([0-9]*\/\)[0-9]*\)*\] /\3/' | \
 	sed 's/Subject: //' | \
 	tr ' /' '_' | sed 's/[^a-zA-Z0-9_]//g')
-    guilt import -P $name $f
+    _import $name $f
 done

@@ -1,27 +1,16 @@
 #!/bin/bash
+#
+# Copyright (C) 2013 MORITA Kazutaka <morita.kazutaka@gmail.com>
+#
 
-set -e
+. git-qsh-setup
+
+USAGE="[<patch>]"
 
 name=$1
 if [ "$name" = "" ]; then
-    name=$(guilt next)
+    name=$(git qnext)
 fi
-
-. "$(git --exec-path)/git-sh-setup"
-GUILT_DIR="$GIT_DIR/patches"
-
-silent()
-{
-	"$@" >/dev/null 2>/dev/null
-}
-
-get_branch()
-{
-	silent git symbolic-ref HEAD || \
-		die "Working on a detached HEAD is unsupported."
-
-	git symbolic-ref HEAD | sed -e 's,^refs/heads/,,'
-}
 
 setup_colors()
 {
@@ -72,7 +61,8 @@ if ($commitlog) {
 '
 }
 
-raw_git_branch=`get_branch`
-branch=`echo "$raw_git_branch" | sed -e 's,^'$GUILT_PREFIX',,'`
-
-cat $GUILT_DIR/$branch/$name | _filter | colorize | lv -c
+if [ -t 1 ]; then
+    cat $GITQ_DIR/$branch/$name | _filter | colorize | $pager
+else
+    cat $GITQ_DIR/$branch/$name | _filter
+fi

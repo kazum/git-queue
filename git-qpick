@@ -1,24 +1,24 @@
 #!/bin/bash
+#
+# Copyright (C) 2013 MORITA Kazutaka <morita.kazutaka@gmail.com>
+#
 
-set -e
+. git-qsh-setup
 
-must_commit_first()
-{
-    git update-index --refresh --unmerged -q > /dev/null
-    [ `git diff-files | wc -l` -eq 0 ] || return $?
-    [ `git diff-index HEAD | wc -l` -eq 0 ]
-    return $?
-}
+USAGE="[<hash> | <since>..[<until>] | ..<until>]"
 
+if [ $# -ne 1 ] || [ -z "$1" ]; then
+    usage
+fi
+
+rhash=`munge_hash_range $1`
+
+# make sure that there are no unapplied changes
 if ! must_commit_first; then
-    echo "Uncommited changes detected."
-    return 1
+    die "Uncommited changes detected."
 fi
 
 DIR=$(mktemp -d)
-
-c=$(git rev-list --no-walk $@)
-git format-patch -o $DIR --quiet $c^..$c
+git format-patch -o $DIR --quiet $rhash
 git qimport $DIR/*
-
 rm -r $DIR

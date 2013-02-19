@@ -1,8 +1,30 @@
 #!/bin/bash
+#
+# Copyright (C) 2013 MORITA Kazutaka <morita.kazutaka@gmail.com>
+#
+# This code is based on guilt-commit from Guilt (Git Quilt):
+#   Copyright (c) Josef "Jeff" Sipek, 2008-2011
+#
 
-set -e
+. git-qsh-setup
 
-guilt commit $@
+USAGE=""
+
+if [ $# -ne 0 ]; then
+    usage
+fi
+
+# if nothing's applied, exit
+[ `wc -l < "$applied"` -eq 0 ] && exit 0
+
+# remove patch refs for what's being committed, and update series
+for pname in $(sed -n -e "1,\$p" "$applied"); do
+    grep -v "^$pname$" < "$series" > "$series.tmp"
+    mv "$series.tmp" "$series"
+    echo "$pname" | remove_patch_refs
+done
+
+truncate -s 0 "$applied"
 
 # run gseries to cleanup merged patches
 rest=$(git qseries)

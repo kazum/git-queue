@@ -6,7 +6,7 @@ _git_qpop()
 		return
 	esac
 
-	__gitcomp "`guilt applied`"
+	__gitcomp "`git qapplied`"
 }
 
 _git_qpush()
@@ -17,7 +17,7 @@ _git_qpush()
 		return
 	esac
 
-	__gitcomp "`guilt unapplied`"
+	__gitcomp "`git qunapplied`"
 }
 
 _git_qcommit()
@@ -80,10 +80,10 @@ _git_qinit()
 
 _git_qshow()
 {
-	__gitcomp "`guilt series`"
+	__gitcomp "`git qseries`"
 }
 
 _git_qrename()
 {
-	__gitcomp "`guilt series`"
+	__gitcomp "`git qseries`"
 }
