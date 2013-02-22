@@ -51,6 +51,12 @@ git-qpop
 _check "123" "" "123" ""
 
 git-qpush
+git-qpop
+git-qpush
+git-qpush
+git-qpop
+git-qpop
+git-qpush
 git-qpush
 git-qcommit
 _check "3" "" "3" "patch2"
