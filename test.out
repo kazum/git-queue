@@ -1,0 +1,61 @@
+Initialized empty Git repository in /home/kazutaka/git/git-queue/tmp/.git/
+[master (root-commit) XXXXXXX] a
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+ create mode 100644 a
+[master XXXXXXX] patch1
+ 1 file changed, 1 insertion(+)
+[master XXXXXXX] patch2
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+[master XXXXXXX] patch3
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+import 1_patch1
+import 2_patch2
+import 3_patch3
+HEAD is now at XXXXXXX a
+HEAD is now at XXXXXXX a
+Applying patch..1
+Patch applied.
+HEAD is now at XXXXXXX patch1
+import patch1
+HEAD is now at XXXXXXX a
+HEAD is now at XXXXXXX a
+No patches applied.
+HEAD is now at XXXXXXX a
+Applying patch..1
+Patch applied.
+All patches popped.
+Applying patch..1
+Patch applied.
+Applying patch..2
+Patch applied.
+Now at 1.
+All patches popped.
+Applying patch..1
+Patch applied.
+Applying patch..2
+Patch applied.
+HEAD is now at XXXXXXX patch2
+HEAD is now at XXXXXXX a
+import patch2
+import patch1
+HEAD is now at XXXXXXX a
+Applying patch..1
+Patch applied.
+Applying patch..2
+Patch applied.
+Applying patch..3
+Patch applied.
+0001-patch1.patch
+0002-patch2.patch
+0003-patch3.patch
+import 1_patch1
+import 2_patch2
+import 3_patch3
+HEAD is now at XXXXXXX a
+Applying patch..1
+Patch applied.
+Applying patch..2
+Patch applied.
+Applying patch..3
+Patch applied.
+** Passed **
