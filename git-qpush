@@ -124,7 +124,5 @@ for p in $(sed -n -e "${sidx},${eidx}p" "$series"); do
 	echo "Patch applied."
     elif [ -z "$abort_flag" ]; then
 	die "Patch applied with rejects. Fix it up, and refresh."
-    else
-	die "To force apply this patch, use 'git qpush -f'"
     fi
 done

@@ -114,7 +114,7 @@ push_patch()
 	if [ "$bail_action" = abort ]; then
 	    reject=""
 	fi
-	git am -s $reject "$p" > /dev/null 2> "$TMP_LOG"
+	git am -3 -s $reject "$p" > /dev/null 2> "$TMP_LOG"
 	__push_patch_bail=$?
 
 	if [ $__push_patch_bail -ne 0 ]; then
